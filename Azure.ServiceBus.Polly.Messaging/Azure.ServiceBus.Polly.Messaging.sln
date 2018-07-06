@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27825.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azure.ServiceBus.Polly.Messaging", "Azure.ServiceBus.Polly.Messaging\Azure.ServiceBus.Polly.Messaging.csproj", "{48F7FF14-1AFB-4145-A80C-26F7399D233C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48F7FF14-1AFB-4145-A80C-26F7399D233C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48F7FF14-1AFB-4145-A80C-26F7399D233C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48F7FF14-1AFB-4145-A80C-26F7399D233C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48F7FF14-1AFB-4145-A80C-26F7399D233C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D4FC1FBB-2130-4123-A609-D1D52ED9E0BD}
+	EndGlobalSection
+EndGlobal
