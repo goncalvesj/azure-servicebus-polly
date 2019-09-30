@@ -1,9 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27825.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29324.140
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azure.ServiceBus.Polly.Messaging", "Azure.ServiceBus.Polly.Messaging\Azure.ServiceBus.Polly.Messaging.csproj", "{48F7FF14-1AFB-4145-A80C-26F7399D233C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azure.ServiceBus.Polly.Messaging", "Azure.ServiceBus.Polly.Messaging\Azure.ServiceBus.Polly.Messaging.csproj", "{48F7FF14-1AFB-4145-A80C-26F7399D233C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{186A8A1C-A17F-4BB0-A0F5-BF59F5C54E0E}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

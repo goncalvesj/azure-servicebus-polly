@@ -4,15 +4,37 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
 using Microsoft.Azure.ServiceBus.Core;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace Azure.ServiceBus.Polly.Messaging
 {
 	public class Messaging : IMessaging
 	{
-		internal const int RetryCount = 3;
-		internal const int RetrySeconds = 3;
-		internal const string ErrorQueueName = "Error";
+		///  <summary>
+		///      Sets Up primary Service Bus connection.
+		///      Sets Up Secondary Service Bus connection if secondary connection string exists.
+		///      Sets Up Retry and Fallback policies if secondary connection string exists.
+		/// 		Logs Exception in case of failure in secondary namespace
+		///  </summary>		
+		/// <param name="options"></param>
+		public Messaging(IOptions<MessagingOptions> options)
+		{
+			var _options = options.Value;
+
+			MessageFactory.PrimarySenderClient =
+				MessageFactory.SetUpFactory(_options.TopicName, _options.ServiceBusConnectionString, RetryPolicy.Default);
+			
+			if (string.IsNullOrEmpty(_options.ServiceBusConnectionStringSecondary)) return;
+
+			MessageFactory.SecondarySenderClient =
+				MessageFactory.SetUpFactory(_options.TopicName, _options.ServiceBusConnectionStringSecondary, RetryPolicy.Default);
+						
+			MessageFactory.ErrorSenderClient =
+				MessageFactory.SetUpFactory(_options.ErrorQueueName, _options.ServiceBusConnectionStringSecondary);
+
+			PollyFactory.SetUpPolicies(_options.RetryCount, _options.RetrySeconds, OnFallBackAction, OnErrorAction);
+		}
 
 		///  <summary>
 		///      Sets Up primary Service Bus connection.
@@ -26,40 +48,51 @@ namespace Azure.ServiceBus.Polly.Messaging
 		///  <param name="retryCount">Number of retries applied to Retry Policy</param>
 		///  <param name="retrySeconds">Number of seconds between every retry</param>
 		///  <param name="errorQueueName">Name of Queue to log expections</param>
-		public Messaging(
-			string topicName,
-			string connectionStringPrimary, string connectionStringSecondary = "",
-			int retryCount = RetryCount, int retrySeconds = RetrySeconds, string errorQueueName = ErrorQueueName)
-		{
-			MessageFactory.PrimarySenderClient =
-				MessageFactory.SetUpFactory(topicName, connectionStringPrimary, RetryPolicy.Default);
+		/// <param name="eventTopic">Topic to publish events to</param>
+		//public ProceduralSystemMessaging(
+		//	string topicName,
+		//	string connectionStringPrimary, string connectionStringSecondary = "",
+		//	int retryCount = Globals.RetryCount, int retrySeconds = Globals.RetrySeconds,
+		//	string errorQueueName = Globals.ErrorQueueName, string eventTopic = Globals.EventTopicName)
+		//{
+		//	MessageFactory.PrimarySenderClient =
+		//		MessageFactory.SetUpFactory(topicName, connectionStringPrimary, RetryPolicy.Default);
 
-			if (string.IsNullOrEmpty(connectionStringSecondary)) return;
+		//	MessageFactory.PrimaryEventSenderClient =
+		//		MessageFactory.SetUpFactory(eventTopic, connectionStringPrimary, RetryPolicy.Default);
 
-			MessageFactory.SecondarySenderClient =
-				MessageFactory.SetUpFactory(topicName, connectionStringSecondary, RetryPolicy.Default);
+		//	if (string.IsNullOrEmpty(connectionStringSecondary)) return;
 
-			MessageFactory.ErrorSenderClient =
-				MessageFactory.SetUpFactory(errorQueueName, connectionStringSecondary);
+		//	MessageFactory.SecondarySenderClient =
+		//		MessageFactory.SetUpFactory(topicName, connectionStringSecondary, RetryPolicy.Default);
 
-			PollyFactory.SetUpPolicies(retryCount, retrySeconds, OnFallBackAction, OnErrorAction);
-		}
+		//	MessageFactory.SecondaryEventSenderClient =
+		//		MessageFactory.SetUpFactory(eventTopic, connectionStringSecondary, RetryPolicy.Default);
+
+		//	MessageFactory.ErrorSenderClient =
+		//		MessageFactory.SetUpFactory(errorQueueName, connectionStringSecondary);
+
+		//	PollyFactory.SetUpPolicies(retryCount, retrySeconds, OnFallBackAction, OnErrorAction);
+		//}
 
 		internal static Func<IBaseMessage, Task> OnFallBackAction { get; } =
-			async message => await SendMessage(message, MessageFactory.SecondarySenderClient);
+			async message => await SendMessage(message, MessageFactory.SecondarySenderClient).ConfigureAwait(false);
 
 		internal static Func<IBaseMessage, Task> OnErrorAction { get; } =
-			async message => await SendMessage(message, MessageFactory.ErrorSenderClient);
+			async message => await SendMessage(message, MessageFactory.ErrorSenderClient).ConfigureAwait(false);
 
 		public async Task SendMessageAsync<T>(T messageToSend) where T : IBaseMessage
 		{
-			if (PollyFactory.ProceduralSystemMessagingPolicy != null)
-				await PollyFactory.ProceduralSystemMessagingPolicy
-					.ExecuteAsync(
-						context => SendMessage(messageToSend, MessageFactory.PrimarySenderClient),
-						new Dictionary<string, object> {{ "messageToSend", messageToSend } });
+			if (PollyFactory.MessagingPolicy != null)
+			{
+				await PollyFactory.MessagingPolicy
+								  .ExecuteAsync(
+												context =>
+													SendMessage(messageToSend, MessageFactory.PrimarySenderClient),
+												new Dictionary<string, object> { { "messageToSend", messageToSend } }).ConfigureAwait(false);
+			}
 			else
-				await SendMessage(messageToSend, MessageFactory.PrimarySenderClient);
+				await SendMessage(messageToSend, MessageFactory.PrimarySenderClient).ConfigureAwait(false);
 		}
 
 		private static async Task SendMessage<T>(T messageToSend, ISenderClient sender) where T : IBaseMessage
@@ -69,7 +102,7 @@ namespace Azure.ServiceBus.Polly.Messaging
 				Label = messageToSend.Label
 			};
 
-			await sender.SendAsync(message);
+			await sender.SendAsync(message).ConfigureAwait(false);
 		}
 	}
 }

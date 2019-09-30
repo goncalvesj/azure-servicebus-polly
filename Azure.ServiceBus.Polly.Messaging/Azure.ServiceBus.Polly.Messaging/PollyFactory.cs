@@ -6,28 +6,22 @@ using Polly.Wrap;
 
 namespace Azure.ServiceBus.Polly.Messaging
 {
-	public class PollyFactory
+	public static class PollyFactory
 	{
-		internal static PolicyWrap ProceduralSystemMessagingPolicy { get; set; }
+		internal static AsyncPolicyWrap MessagingPolicy { get; set; }
 
 		private static IAsyncPolicy SetUpRetryPolicy(int retryCount, int retrySeconds)
 		{
 			return Policy.Handle<Exception>()
 				.WaitAndRetryAsync(retryCount, retryAttempt => TimeSpan.FromSeconds(retrySeconds),
-					(exception, timeSpan, i, context) =>
-					{
-						Console.WriteLine($"Retrying due to: {exception.Message}; Try number: {i}");
-					});
+					(exception, timeSpan, i, context) => Console.WriteLine($"Retrying due to: {exception.Message}; Try number: {i}"));
 		}
 
 		private static IAsyncPolicy SetUpFallBackPolicy(Func<IBaseMessage, Task> onFallBackAction, Func<IBaseMessage, Task> onErrorAction)
 		{
 			return Policy.Handle<Exception>()
 				.FallbackAsync(
-					async (exception, context, token) =>
-					{
-						await onFallBackAction(context.Values.FirstOrDefault() as IBaseMessage);
-					},
+					async (exception, context, token) => await onFallBackAction(context.Values.FirstOrDefault() as IBaseMessage).ConfigureAwait(false),
 					async (exception, context) =>
 					{
 						await onErrorAction(new ErrorMessage
@@ -35,7 +29,7 @@ namespace Azure.ServiceBus.Polly.Messaging
 							Label = "SendMessageError",
 							Exception = exception.Message,
 							Message = context.Values.FirstOrDefault() as IBaseMessage
-						});
+						}).ConfigureAwait(false);
 					});
 		}
 
@@ -47,7 +41,7 @@ namespace Azure.ServiceBus.Polly.Messaging
 
 			var retryPolicy = SetUpRetryPolicy(retryCount, retrySeconds);
 
-			ProceduralSystemMessagingPolicy = fallBackPolicy.WrapAsync(retryPolicy);
+			MessagingPolicy = fallBackPolicy.WrapAsync(retryPolicy);
 		}
 	}
 }
